@@ -1,0 +1,1115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>一座看似平平无奇却让神打了一天代码出来的小屋</title>
+<link rel="preconnect" href="https://miaoda.feishu.cn">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@400;600&family=Ma+Shan+Zheng&display=swap">
+<style>
+  :root{
+    --ink:#070a14;
+    --cream:#f4ead8;
+    --gold:#e9c37a;
+    --red:#c8374a;
+    --frame:#14112a;
+    --text:#e9e4f5;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:radial-gradient(120% 100% at 50% 40%, #0d1226 0%, #070a14 70%);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;padding-bottom:76px;
+    font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--text);
+  }
+  #cv{
+    display:block;
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+    box-shadow:0 0 0 3px #191632, 0 0 0 6px #0a0c16, 0 26px 70px rgba(0,0,0,.65);
+    cursor:default;
+  }
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:20;}
+  #hud > *{pointer-events:auto;}
+
+  /* ---------- 像素风小部件 ---------- */
+  .pxbox{
+    background:rgba(14,12,30,.92);
+    border:3px solid var(--cream);
+    box-shadow:0 0 0 3px #0a0c16, 5px 5px 0 rgba(0,0,0,.4);
+    backdrop-filter:blur(2px);
+  }
+  .pixel{font-family:"Press Start 2P",monospace;letter-spacing:.06em;}
+
+  /* ---------- 开场 ---------- */
+  #start{
+    position:fixed;inset:0;z-index:40;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    background:radial-gradient(90% 80% at 50% 45%, rgba(10,14,30,.975), rgba(3,5,11,.995));
+    text-align:center;padding:24px;
+    transition:opacity .6s ease;
+  }
+  #start.hide{opacity:0;pointer-events:none;}
+  .s-kicker{
+    font-family:"Press Start 2P",monospace;font-size:10px;letter-spacing:.3em;
+    color:#8ea3c8;
+    text-shadow:0 0 14px rgba(0,0,0,.95), 0 2px 4px rgba(0,0,0,.9);
+  }
+  .s-title{
+    font-family:"Press Start 2P",monospace;
+    font-size:clamp(17px,7vw,38px);line-height:1.7;letter-spacing:.06em;
+    color:#fdf6e3;
+    text-shadow:3px 3px 0 #c8374a, 0 0 26px rgba(255,214,140,.35);
+  }
+  .s-sub{
+    font-size:14px;color:#c3cde2;letter-spacing:.1em;line-height:1.9;
+    max-width:330px;text-shadow:0 0 12px rgba(0,0,0,.9);
+  }
+  .s-btn{
+    margin-top:6px;
+    font-family:"Press Start 2P",monospace;font-size:11px;letter-spacing:.14em;
+    color:#0d1020;background:var(--gold);
+    border:0;padding:14px 22px;cursor:pointer;
+    max-width:100%;
+    box-shadow:4px 4px 0 #7a4a2a, 0 0 24px rgba(233,195,122,.35);
+    animation:blinkBtn 1.6s steps(2,end) infinite;
+  }
+  .s-btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #7a4a2a;}
+  @keyframes blinkBtn{0%,70%{opacity:1}71%,100%{opacity:.72}}
+  .s-note{font-size:12px;color:#7d8aa5;letter-spacing:.08em;}
+
+  /* ---------- 顶部计数 / 静音 ---------- */
+  #lights{
+    position:fixed;left:16px;top:14px;
+    padding:8px 10px;font-family:"Press Start 2P",monospace;font-size:9px;
+    color:#e9c37a;letter-spacing:.1em;
+    opacity:0;transition:opacity .4s;
+  }
+  #lights.on{opacity:1;}
+  #mute{
+    position:fixed;right:14px;top:12px;
+    padding:9px 10px;cursor:pointer;
+    font-family:"Press Start 2P",monospace;font-size:9px;color:var(--cream);
+    opacity:0;transition:opacity .4s;
+  }
+  #mute.on{opacity:.8;}
+  #mute:hover{opacity:1;}
+
+  /* ---------- 对话框 ---------- */
+  #dialog{
+    position:fixed;left:50%;bottom:22px;transform:translate(-50%,14px);
+    width:min(640px, calc(100% - 28px));
+    padding:16px 20px 18px;
+    opacity:0;pointer-events:none;transition:opacity .22s, transform .22s;
+    cursor:pointer;
+  }
+  #dialog.show{opacity:1;pointer-events:auto;transform:translate(-50%,0);}
+  #dialog .who{
+    font-family:"Press Start 2P",monospace;font-size:9px;color:#8fd0ff;
+    letter-spacing:.12em;margin-bottom:9px;display:block;
+  }
+  #dialog .line{
+    font-size:15px;line-height:2;letter-spacing:.06em;color:#efeaf7;
+    min-height:2em;white-space:pre-wrap;
+  }
+  #dialog .ind{
+    position:absolute;right:14px;bottom:8px;font-size:12px;color:var(--gold);
+    animation:ind 1.1s steps(2,end) infinite;
+  }
+  @keyframes ind{0%,60%{opacity:1;transform:translateY(0)}61%,100%{opacity:.25;transform:translateY(2px)}}
+
+  /* ---------- 信 ---------- */
+  #letter{
+    position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+    padding:22px;background:rgba(5,7,14,.82);backdrop-filter:blur(3px);
+    opacity:0;pointer-events:none;transition:opacity .45s;
+  }
+  #letter.show{opacity:1;pointer-events:auto;}
+  .paper{
+    position:relative;
+    width:min(560px,100%);max-height:90vh;overflow:auto;
+    padding:36px 30px 22px;
+    color:#2b2017;
+    background:
+      radial-gradient(120% 90% at 50% 0%, #fdf7e8 0%, #f2e6cd 55%, #e6d6b8 100%);
+    border:2px solid #c9b696;
+    box-shadow:0 24px 60px rgba(0,0,0,.55), inset 0 0 60px rgba(160,130,90,.18);
+    transform:translateY(14px) scale(.98);transition:transform .45s cubic-bezier(.2,.9,.3,1);
+    font-family:"Noto Serif SC","Songti SC",serif;
+  }
+  .paper::-webkit-scrollbar{width:6px;}
+  .paper::-webkit-scrollbar-thumb{background:rgba(150,120,85,.35);}
+  #letter.show .paper{transform:translateY(0) scale(1);}
+  .tape{
+    position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(-2deg);
+    width:118px;height:26px;background:rgba(200,55,74,.72);
+    box-shadow:0 3px 8px rgba(0,0,0,.2);
+  }
+  .stamp{
+    position:absolute;right:26px;top:22px;width:58px;height:58px;border-radius:50%;
+    border:2px dashed rgba(150,60,50,.6);color:rgba(150,60,50,.75);
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    font-family:"Press Start 2P",monospace;font-size:8px;line-height:1.7;letter-spacing:.06em;
+    transform:rotate(8deg);opacity:.85;
+  }
+  .paper h2.pix{
+    margin:0 0 12px;font-family:"Press Start 2P",monospace;
+    font-size:9px;letter-spacing:.24em;color:#a3794f;line-height:1.8;
+  }
+  .paper .ded{
+    margin:0 0 22px;font-size:13.5px;line-height:1.9;color:#8a6a49;letter-spacing:.02em;
+  }
+  .paper p{
+    margin:0 0 14px;font-size:15.5px;line-height:2.0;letter-spacing:.02em;
+    text-align:justify;
+  }
+  .paper .sign{
+    margin-top:22px;text-align:right;
+    font-family:"Ma Shan Zheng","Noto Serif SC",cursive;
+    font-size:23px;color:#42301f;letter-spacing:.06em;
+  }
+  .paper .pst{
+    margin-top:18px;padding-top:12px;border-top:1px dashed rgba(120,95,65,.35);
+    font-size:12.5px;color:#6b5540;line-height:1.9;
+  }
+  .thumb-row{display:flex;justify-content:center;margin:-2px 0 20px;}
+  #thumbBtn{
+    font-family:"Noto Sans SC","PingFang SC",sans-serif;font-size:14px;letter-spacing:.16em;
+    color:#8e3a34;background:#fdf5e6;border:2px solid #c9916d;padding:9px 26px;cursor:pointer;
+    box-shadow:3px 3px 0 rgba(122,84,58,.28);transition:transform .1s,box-shadow .1s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #thumbBtn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 rgba(122,84,58,.28);}
+  #thumbBtn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(122,84,58,.28);}
+  #thumbFx{
+    position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;
+  }
+  .thumbInner{
+    width:0;height:0;filter:drop-shadow(0 12px 20px rgba(60,30,18,.34));
+  }
+  .thumbInner canvas{display:block;width:100%;height:100%;}
+  #closeLetter{
+    display:block;margin:18px auto 0;
+    font-family:"Press Start 2P","Noto Sans SC",sans-serif;font-size:10px;letter-spacing:.14em;
+    color:var(--cream);background:#3a2a3c;border:0;padding:12px 18px;cursor:pointer;
+    box-shadow:3px 3px 0 rgba(0,0,0,.35);
+  }
+  #closeLetter:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(0,0,0,.35);}
+
+  /* ---------- 音频 viz 小提示 ---------- */
+  #hintMusic{
+    position:fixed;left:50%;bottom:96px;transform:translateX(-50%);
+    font-size:12px;color:#8f9cb8;letter-spacing:.1em;opacity:0;transition:opacity .4s;
+    pointer-events:none;
+  }
+  #hintMusic.on{opacity:1;}
+
+  @media (max-width:640px){
+    body{padding-bottom:104px;}
+  }
+
+  @media (max-width:520px){
+    .paper{padding:32px 20px 20px;}
+    .paper p{font-size:15px;line-height:1.95;}
+    .paper .ded{font-size:12.5px;}
+    .paper .sign{font-size:21px;}
+    #dialog{bottom:12px;width:calc(100% - 18px);padding:13px 14px 16px;}
+    #dialog .line{font-size:13.5px;line-height:1.9;}
+    #lights,#mute{top:10px;}
+    #lights{left:10px;}
+    #mute{right:10px;}
+  }
+</style>
+</head>
+<body>
+<canvas id="cv" width="320" height="200"></canvas>
+
+<div id="hud">
+  <div id="lights" class="pxbox">LIGHTS 0 / 3</div>
+  <div id="mute" class="pxbox">♪ ON</div>
+  <div id="hintMusic">背景音乐当然是我ai的</div>
+
+  <div id="dialog" class="pxbox">
+    <span class="who">卡密撒嘛</span>
+    <div class="line"></div>
+    <span class="ind">▼</span>
+  </div>
+</div>
+
+<div id="letter">
+  <div class="paper">
+    <div class="tape"></div>
+    <div class="stamp">2026<br>XMAS</div>
+    <h2 class="pix">TO · 哥哥</h2>
+    <p class="ded">6 月 18 号 → 12 月 26 号，第 192 天</p>
+    <p>2026 年那些奇怪得像异世界的事，我已经跟你说过好多遍了。但仔细想想，年初我也没有多幸运：前几段感情都蛮失败，上半年整体过得挺糟心。于是我就开始试图找到那个变量——是我变得更成熟了吗？还是说后半年刚好是什么狮子座运势半年？</p>
+    <p>想来想去才发现，一切幸福好像都是在我遇见你之后才出现的。你就是专属于我的福星。我连败够多了，现在可以开始收菜了~</p>
+    <p>我知道我是个很好的人，当然也知道我是个多烂的人。跟我谈恋爱很辛苦吧，不要着急反驳我，我就是个麻烦的家伙，有着超强的虚荣心和无与伦比的冷酷无情。哎呀呀，这你确实没法反驳吧？</p>
+    <p>但我这种硬茬，居然还真就刚刚好被你这个属性相对的勇者遇见了？！这大概就是那些艺术作品里说的命中注定？我再也不说“遇事不决就写宿命”的电影是烂片了——因为我的宿命，刚好正在读这份牛头不对马嘴的信。艺术果然还是在现实之下呐。</p>
+    <p>能融化冰山可不容易，亲爱的 Cary丶Serizawa，你比愚公还牛逼啊。</p>
+    <div class="thumb-row"><button id="thumbBtn" type="button">点这里</button></div>
+    <p>总而言之，我的小福星、勇者、宿命跟愚公 plus，把你带给我的运势继续延续下去吧。即使这里真的是异闻带、异世界、月读世界、理想乡，我也不想离开这个属于我的乌托邦了。</p>
+    <p>我爱你。</p>
+    <p class="sign">—— 冬天帝，写于 2026 年的圣诞夜</p>
+    <div class="pst">P.S. 这页别关，明年这时候我再来点一次灯。</div>
+    <button id="closeLetter">收好这封信</button>
+  </div>
+</div>
+<div id="thumbFx" aria-hidden="true"><div class="thumbInner"><canvas id="thumbCv" width="160" height="160"></canvas></div></div>
+
+<div id="start">
+  <div class="s-kicker">A LITTLE HOUSE · 6.18 → 12.26</div>
+  <div class="s-title">MERRY<br>CHRISTMAS</div>
+  <div class="s-sub">上位世界的神制造的8bit小屋</div>
+  <button class="s-btn" id="startBtn">▶ PRESS START</button>
+  <div class="s-note">有三颗星星等着被命定之人唤醒</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= 画布 ================= */
+  const W = 320, H = 200;
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  function fit(){
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const pad = vw < 560 ? 6 : 34;
+    let s = Math.min((vw - pad * 2) / W, (vh - pad * 2) / H);
+    if (s > 3) s = Math.floor(s);
+    s = Math.max(1, s);
+    cv.style.width = Math.round(W * s) + 'px';
+    cv.style.height = Math.round(H * s) + 'px';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  function px(x, y, w, h, c){
+    ctx.fillStyle = c;
+    ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+  }
+  function pcircle(cx, cy, r, c){
+    for (let y = -r; y <= r; y++){
+      const w = Math.round(Math.sqrt(Math.max(0, r * r - y * y)));
+      px(cx - w, cy + y, w * 2 + 1, 1, c);
+    }
+  }
+
+  // 柔和的光晕（灯光打在夜色里的暖雾），像素场景里只用来衬底
+  function softGlow(cx, cy, r, rgb, alpha){
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, 'rgba(' + rgb + ',' + alpha.toFixed(3) + ')');
+    g.addColorStop(0.45, 'rgba(' + rgb + ',' + (alpha * 0.5).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(' + rgb + ',0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  }
+
+  /* ================= 随机（固定种子） ================= */
+  let seed = 48271;
+  function rnd(){ seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+
+  const stars = [];
+  for (let i = 0; i < 74; i++){
+    stars.push({ x: Math.round(rnd() * W), y: Math.round(rnd() * 128), ph: rnd() * 6.28, big: rnd() < 0.18 });
+  }
+
+  const flakes = [];
+  for (let i = 0; i < 96; i++){
+    flakes.push({
+      x: rnd() * W, y: rnd() * H,
+      v: 0.5 + rnd() * 1.5,
+      sz: rnd() < 0.28 ? 2 : 1,
+      ph: rnd() * 6.28,
+      o: 0.55 + rnd() * 0.45
+    });
+  }
+
+  const sparks = [];
+
+  /* ================= 状态 ================= */
+  const state = {
+    started: false,
+    found: { gift: false, snowman: false, chimney: false },
+    letterReady: false,
+    letterOpen: false,
+    lit: { gift: false, snowman: false, chimney: false }
+  };
+
+  const hs = {
+    gift:    { x: 82,  y: 108, w: 38, h: 50 },
+    snowman: { x: 208, y: 74,  w: 44, h: 82 },
+    chimney: { x: 174, y: 26,  w: 38, h: 64 },
+    letter:  { x: 138, y: 100, w: 46, h: 76 }
+  };
+  function inRect(x, y, r){ return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h; }
+
+  /* ================= 画：天空 ================= */
+  const SKY = [
+    [0,   22, '#060912', '#0a0f20'],
+    [22,  48, '#0a0f20', '#0d1730'],
+    [48,  76, '#0d1730', '#111f3c'],
+    [76, 108, '#111f3c', '#16284a'],
+    [108,142, '#16284a', '#1c3257']
+  ];
+  function drawSky(){
+    for (const [y0, y1, c] of SKY) px(0, y0, W, y1 - y0, c);
+    // 点状渐变
+    for (let i = 0; i < SKY.length - 1; i++){
+      const yb = SKY[i][1], c = SKY[i + 1][2];
+      for (let y = 0; y < 4; y++){
+        for (let x = 0; x < W; x++){
+          const p = ((x + y * 2) % 4);
+          if (p === 0 || (p === 1 && y > 1)) px(x, yb + y, 1, 1, c);
+        }
+      }
+    }
+  }
+
+  function drawStars(t){
+    for (const s of stars){
+      const tw = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.1 + s.ph));
+      const a = (s.big ? 0.9 : 0.6) * tw;
+      ctx.fillStyle = 'rgba(226,238,255,' + a.toFixed(2) + ')';
+      ctx.fillRect(s.x, s.y, 1, 1);
+      if (s.big && tw > 0.75){
+        ctx.fillStyle = 'rgba(226,238,255,' + (a * 0.5).toFixed(2) + ')';
+        ctx.fillRect(s.x - 1, s.y, 3, 1);
+        ctx.fillRect(s.x, s.y - 1, 1, 3);
+      }
+    }
+  }
+
+  function drawMoon(){
+    pcircle(266, 30, 17, 'rgba(255,248,220,0.05)');
+    pcircle(266, 30, 14, 'rgba(255,248,220,0.08)');
+    pcircle(266, 30, 12, '#fdf6dd');
+    pcircle(270, 33, 8, '#f5ebc8');
+    px(262, 26, 3, 2, '#e8dcb4');
+    px(268, 34, 2, 2, '#e8dcb4');
+    px(263, 33, 2, 1, '#e8dcb4');
+  }
+
+  /* ================= 画：雪地 ================= */
+  function drawHills(){
+    for (let x = 0; x < W; x++){
+      const y = 129 + Math.round(3 * Math.sin(x * 0.045) + 1.6 * Math.sin(x * 0.13));
+      px(x, y, 1, 150 - y + 2, '#7f98bd');
+    }
+    for (let x = 0; x < W; x++){
+      const y = 138 + Math.round(2 * Math.sin(x * 0.06 + 1.2));
+      px(x, y, 1, H - y, '#b8cbe4');
+    }
+    for (let x = 0; x < W; x++){
+      const y = 147 + Math.round(1.6 * Math.sin(x * 0.08 + 2.6));
+      px(x, y, 1, H - y, '#eef4ff');
+    }
+    for (let x = 0; x < W; x++){
+      const y = 154 + Math.round(2.2 * Math.sin(x * 0.05 + 4.2));
+      px(x, y, 1, H - y, '#f6faff');
+    }
+    // 雪面碎点
+    const dots = [[30,168],[62,176],[96,164],[140,172],[196,166],[232,178],[284,170],[112,186],[258,188]];
+    for (const [x, y] of dots) px(x, y, 2, 1, '#dbe7f8');
+  }
+
+  // 雪地上走向门口的一串脚印（两个人的）
+  function drawFootprints(){
+    const path = [[208,194],[201,187],[193,180],[186,173],[178,167],[170,161]];
+    const c1 = 'rgba(152,176,210,0.40)', c2 = 'rgba(152,176,210,0.28)';
+    path.forEach(function(p, i){
+      const [x, y] = p;
+      const d = (i % 2 === 0) ? 0 : 1;
+      px(x, y - d, 3, 2, c1);
+      px(x + 6, y + 2 - d, 3, 2, c2);
+    });
+  }
+
+  /* ================= 画：松树 ================= */
+  function pine(cx, baseY, h, w){
+    const trunk = '#2a1c1a', body = '#14463c', dark = '#0d3730', snow = '#ecf4ff';
+    px(cx - 2, baseY - Math.round(h * 0.16), 4, Math.round(h * 0.18), trunk);
+    for (let i = 0; i < 3; i++){
+      const topY = baseY - h + i * (h * 0.25);
+      const tierH = h * 0.42;
+      const maxHalf = (w / 2) * (0.6 + 0.2 * i);
+      for (let r = 0; r < tierH; r++){
+        const half = Math.round(maxHalf * (r / tierH));
+        px(cx - half, topY + r, half * 2 + 1, 1, (r % 7 === 6) ? dark : body);
+      }
+      // 雪挂
+      for (let r = 0; r < tierH; r++){
+        const half = Math.round(maxHalf * (r / tierH));
+        if (r < tierH * 0.55){ px(cx - half, topY + r, 2, 1, snow); px(cx + half - 1, topY + r, 2, 1, '#dfeaff'); }
+      }
+      // 底层积雪
+      px(cx - Math.round(maxHalf), topY + tierH - 1, Math.round(maxHalf * 2) + 1, 2, 'rgba(238,246,255,0.92)');
+    }
+    px(cx - 2, baseY - h - 1, 5, 2, '#f4faff');
+  }
+
+  /* ================= 画：房子 ================= */
+  const HOUSE = { l: 114, r: 206, top: 104, base: 150 };
+  const ROOF = { ax: 160, ay: 60, ey: 110, hm: 56 };
+
+  function drawHouse(t){
+    // 烟囱
+    px(184, 52, 16, 46, '#3d2830');
+    px(184, 52, 16, 3, '#5a3c46');
+    for (let y = 58; y < 96; y += 6) px(184, y, 16, 1, '#31212a');
+    px(182, 48, 20, 5, '#f4f9ff');
+    px(182, 52, 20, 2, '#dceafa');
+
+    // 墙体
+    px(HOUSE.l, HOUSE.top, HOUSE.r - HOUSE.l, HOUSE.base - HOUSE.top, '#60392f');
+    px(HOUSE.l, HOUSE.top, HOUSE.r - HOUSE.l, 2, '#734539');
+    px(HOUSE.l, HOUSE.top, 3, HOUSE.base - HOUSE.top, '#553027');
+    // 木纹
+    for (let y = 110; y < 149; y += 6){
+      for (let x = HOUSE.l + ((y / 6) % 2 === 0 ? 3 : 8); x < HOUSE.r - 2; x += 11) px(x, y, 8, 1, '#573229');
+    }
+
+    // 窗（未点亮 / 点亮）
+    drawWindow(120, 116, state.lit.gift);
+    drawWindow(178, 116, state.lit.gift);
+
+    // 门
+    px(145, 114, 30, 36, '#3a2220');
+    px(147, 116, 26, 34, '#4d2b24');
+    px(149, 120, 22, 30, '#40231e');
+    px(149, 134, 22, 1, '#57352c');
+    px(168, 132, 2, 3, '#e7c077');
+    px(143, 149, 34, 3, '#eef5ff');
+
+    // 屋顶
+    for (let y = ROOF.ay; y <= ROOF.ey; y++){
+      const k = (y - ROOF.ay) / (ROOF.ey - ROOF.ay);
+      const half = Math.round(k * ROOF.hm);
+      px(ROOF.ax - half, y, half * 2 + 1, 1, (y % 5 === 0) ? '#2c1e29' : '#36252f');
+      px(ROOF.ax - half, y, 4, 1, '#f1f7ff');
+      px(ROOF.ax + half - 3, y, 4, 1, '#e6f0fd');
+    }
+    // 屋脊积雪
+    px(ROOF.ax - 4, ROOF.ay - 2, 9, 3, '#f7fbff');
+    px(ROOF.ax - 7, ROOF.ay + 1, 15, 2, '#eaf2fe');
+
+    // 冰凌
+    const icicles = [[118, 3], [128, 5], [139, 2], [152, 6], [165, 3], [178, 5], [192, 2], [202, 4]];
+    for (const [x, len] of icicles){
+      px(x, ROOF.ey + 1, 2, len, 'rgba(226,240,255,0.92)');
+      px(x, ROOF.ey + len, 1, 1, 'rgba(226,240,255,0.55)');
+    }
+
+    // 门口的光（全亮后）
+    if (state.letterReady){
+      const pulse = 0.10 + 0.10 * Math.abs(Math.sin(t * 1.6));
+      softGlow(160, 132, 27, '255,206,132', 0.20 + pulse);
+    }
+  }
+
+  function drawWindow(wx, wy, lit){
+    if (lit) softGlow(wx + 11, wy + 11, 24, '255,190,95', 0.26);
+    px(wx, wy, 22, 22, lit ? '#ffbd58' : '#241f38');
+    px(wx + 1, wy + 1, 20, 20, lit ? '#ffe6ab' : '#2c2745');
+    if (lit){
+      px(wx + 3, wy + 3, 7, 7, '#fff8dd');
+      px(wx + 12, wy + 3, 6, 7, '#ffe0a2');
+      px(wx + 3, wy + 12, 7, 6, '#fff0c4');
+    }
+    // 十字窗框
+    px(wx + 10, wy, 2, 22, '#4a2b26');
+    px(wx, wy + 10, 22, 2, '#4a2b26');
+    px(wx, wy, 22, 2, '#553229');
+    px(wx, wy + 20, 22, 2, '#553229');
+    // 窗台积雪
+    px(wx - 1, wy + 22, 24, 2, '#eef5ff');
+    px(wx - 1, wy + 22, 24, 1, '#ffffff');
+  }
+
+  /* ================= 画：雪人 / 礼物 ================= */
+  const SNOWMAN = { cx: 228, gy: 152 };
+  function drawSnowman(){
+    pcircle(SNOWMAN.cx, SNOWMAN.gy - 2, 12, 'rgba(160,185,220,0.25)');
+    pcircle(SNOWMAN.cx, SNOWMAN.gy - 11, 12, '#f4f9ff');
+    pcircle(SNOWMAN.cx - 4, SNOWMAN.gy - 14, 5, '#dfeaf8');
+    pcircle(SNOWMAN.cx, SNOWMAN.gy - 26, 8, '#f7fbff');
+    pcircle(SNOWMAN.cx + 3, SNOWMAN.gy - 27, 5, '#e6effb');
+    pcircle(SNOWMAN.cx, SNOWMAN.gy - 37, 6, '#f9fcff');
+    // 眼睛 & 胡萝卜鼻子
+    px(SNOWMAN.cx - 2, SNOWMAN.gy - 39, 2, 2, '#2b2438');
+    px(SNOWMAN.cx + 2, SNOWMAN.gy - 39, 2, 2, '#2b2438');
+    px(SNOWMAN.cx + 5, SNOWMAN.gy - 37, 5, 2, '#e8874b');
+    // 嘴
+    px(SNOWMAN.cx - 1, SNOWMAN.gy - 34, 1, 1, '#3a3350');
+    px(SNOWMAN.cx + 1, SNOWMAN.gy - 33, 2, 1, '#3a3350');
+    // 围巾
+    px(SNOWMAN.cx - 7, SNOWMAN.gy - 31, 14, 3, '#c4384b');
+    px(SNOWMAN.cx + 4, SNOWMAN.gy - 30, 3, 8, '#a92c3d');
+    // 扣子
+    px(SNOWMAN.cx - 1, SNOWMAN.gy - 24, 2, 2, '#3a3350');
+    px(SNOWMAN.cx - 1, SNOWMAN.gy - 19, 2, 2, '#3a3350');
+    // 树枝手臂
+    px(SNOWMAN.cx - 16, SNOWMAN.gy - 25, 6, 1, '#6d4f39');
+    px(SNOWMAN.cx - 18, SNOWMAN.gy - 28, 3, 1, '#6d4f39');
+    px(SNOWMAN.cx + 9,  SNOWMAN.gy - 26, 6, 1, '#6d4f39');
+    px(SNOWMAN.cx + 14, SNOWMAN.gy - 29, 3, 1, '#6d4f39');
+    // 帽子
+    px(SNOWMAN.cx - 6, SNOWMAN.gy - 44, 12, 2, '#2f2a48');
+    px(SNOWMAN.cx - 4, SNOWMAN.gy - 49, 8, 5, '#383253');
+  }
+
+  function drawGift(){
+    px(87, 131, 27, 20, '#c93b4b');
+    px(87, 131, 27, 2, '#e15a67');
+    px(87, 147, 27, 4, '#a52b3a');
+    px(97, 131, 7, 20, '#f0cf87');
+    px(87, 138, 27, 5, '#f0cf87');
+    px(87, 138, 27, 1, '#ffe6b8');
+    // 蝴蝶结
+    px(99, 126, 3, 5, '#f0cf87');
+    px(93, 126, 6, 3, '#e0b96f');
+    px(102, 126, 6, 3, '#e0b96f');
+    px(97, 128, 3, 3, '#c99a4f');
+    // 雪
+    px(87, 131, 6, 2, '#ffffff');
+    px(110, 132, 3, 1, '#ffffff');
+  }
+
+  /* ================= 画：彩灯 ================= */
+  const LIGHT_COLORS = ['#ff7b72', '#ffd166', '#8be08b', '#8fd0ff', '#e0a6ff'];
+  function lightPositions(){
+    const out = [];
+    const seg = (x1, y1, x2, y2, n, off, nx, ny) => {
+      for (let i = 0; i <= n; i++){
+        const k = i / n;
+        out.push({
+          x: x1 + (x2 - x1) * k + nx,
+          y: y1 + (y2 - y1) * k + ny,
+          c: LIGHT_COLORS[(i + off) % LIGHT_COLORS.length],
+          ph: (i + off) * 0.7
+        });
+      }
+    };
+    // 两侧屋脊外侧各挂一串，挑出雪檐外，衬在夜空上
+    seg(ROOF.ax - 50, 104, ROOF.ax - 4, 65, 8, 0, -5, -5);
+    seg(ROOF.ax + 4, 65, ROOF.ax + 50, 104, 8, 2, 5, -5);
+    return out;
+  }
+  const LIGHTS = lightPositions();
+
+  function drawLights(t){
+    if (!state.lit.snowman) return;
+    for (const l of LIGHTS){
+      const tw = 0.3 + 0.7 * Math.abs(Math.sin(t * 2.2 + l.ph));
+      ctx.fillStyle = l.c;
+      ctx.globalAlpha = 0.3 + 0.7 * tw;
+      ctx.fillRect(Math.round(l.x), Math.round(l.y), 2, 2);
+      if (tw > 0.55){
+        ctx.globalAlpha = 0.18 * tw;
+        ctx.fillRect(Math.round(l.x) - 2, Math.round(l.y) - 2, 6, 6);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  /* ================= 画：烟 & 屋顶的星 ================= */
+  function drawSmoke(t){
+    if (!state.lit.chimney) return;
+    const cyc = 2.9;
+    for (let i = 0; i < 8; i++){
+      const p = (((t * 0.5) + i * 0.36) % cyc) / cyc;
+      const y = 48 - p * 48;
+      const x = 192 - p * 12 + Math.sin(t * 1.1 + i) * 3;
+      const r = Math.round(2 + p * 7);
+      const a = 0.26 * (1 - p);
+      ctx.fillStyle = 'rgba(205,220,242,' + a.toFixed(3) + ')';
+      ctx.fillRect(Math.round(x - r / 2), Math.round(y - r / 2), r, r);
+    }
+    // 屋顶星
+    const s = 0.55 + 0.45 * Math.abs(Math.sin(t * 1.7));
+    sparkle(ROOF.ax, ROOF.ay - 8, 5, '#ffe9a8', 0.5 + 0.5 * s);
+    sparkle(ROOF.ax, ROOF.ay - 8, 2, '#fff6d6', s);
+  }
+
+  function sparkle(cx, cy, r, c, alpha){
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = c;
+    ctx.fillRect(cx - r, cy, r * 2 + 1, 1);
+    ctx.fillRect(cx, cy - r, 1, r * 2 + 1);
+    ctx.fillRect(cx - 1, cy - 1, 3, 3);
+    ctx.globalAlpha = 1;
+  }
+
+  /* ================= 画：雪花 ================= */
+  function drawFlakes(t, dt){
+    for (const f of flakes){
+      f.y += f.v * dt * 26;
+      f.x += Math.sin(t * 0.8 + f.ph) * 0.25;
+      if (f.y > 154){ f.y = -4; f.x = rnd() * W; }
+      if (f.x < -2) f.x = W + 2;
+      if (f.x > W + 2) f.x = -2;
+      ctx.fillStyle = 'rgba(240,247,255,' + f.o.toFixed(2) + ')';
+      ctx.fillRect(Math.round(f.x), Math.round(f.y), f.sz, f.sz);
+    }
+  }
+
+  /* ================= 画：信 & 提示星 ================= */
+  function drawEnvelope(t){
+    if (!state.letterReady) return;
+    const x = 148, wE = 18, hE = 12;
+    const y = 146 + Math.round(Math.sin(t * 2) * 1.2);
+    const glow = 0.14 + 0.12 * Math.abs(Math.sin(t * 1.8));
+    softGlow(x + wE / 2, y + hE / 2, 20, '255,210,140', 0.16 + glow);
+    // 影子
+    px(x + 1, y + hE, wE, 2, 'rgba(140,165,200,0.35)');
+    // 红信封
+    px(x, y, wE, hE, '#c8374a');
+    px(x, y, wE, 1, '#e45a68');
+    px(x, y + hE - 1, wE, 1, '#a52838');
+    // 封口三角
+    for (let i = 0; i < 8; i++){
+      px(x + 1 + i, y + 1 + i, 1, 1, '#f6e3c8');
+      px(x + wE - 2 - i, y + 1 + i, 1, 1, '#f6e3c8');
+    }
+    // 火漆印
+    px(x + 7, y + 5, 4, 4, '#e9c37a');
+    px(x + 8, y + 6, 2, 2, '#b98c3f');
+    // 上方跳动的小箭头
+    const bob = Math.round(Math.sin(t * 3) * 1.5);
+    px(x + 8, y - 10 + bob, 3, 1, '#ffd98c');
+    px(x + 9, y - 8 + bob, 1, 2, '#ffd98c');
+  }
+
+  // 待唤醒的星星：9×9 像素星
+  const STAR_PAT = [1, 1, 3, 5, 9, 5, 3, 1, 1];
+  function star4(cx, cy, color, alpha){
+    softGlow(cx, cy, 13, '255,225,160', 0.18 * alpha);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    for (let i = 0; i < STAR_PAT.length; i++){
+      ctx.fillRect(Math.round(cx - STAR_PAT[i] / 2), Math.round(cy - 4 + i), STAR_PAT[i], 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawMarkers(t){
+    if (!state.started) return;
+    const blink = 0.4 + 0.6 * Math.abs(Math.sin(t * 2.2));
+    if (!state.found.gift)    star4(100, 116, '#ffd98c', blink);
+    if (!state.found.snowman) star4(228, 86,  '#bfe6ff', blink);
+    if (!state.found.chimney) star4(192, 36,  '#ff9c94', blink);
+  }
+
+  /* ================= 点击涟漪 ================= */
+  function addSparks(x, y){
+    for (let i = 0; i < 10; i++){
+      const a = (Math.PI * 2 * i) / 10 + Math.random();
+      sparks.push({ x, y, vx: Math.cos(a) * (0.7 + Math.random() * 0.9), vy: Math.sin(a) * (0.7 + Math.random() * 0.9), life: 0.6 });
+    }
+  }
+  function drawSparks(dt){
+    for (let i = sparks.length - 1; i >= 0; i--){
+      const s = sparks[i];
+      s.life -= dt;
+      if (s.life <= 0){ sparks.splice(i, 1); continue; }
+      s.x += s.vx * dt * 40;
+      s.y += s.vy * dt * 40;
+      ctx.fillStyle = 'rgba(255,240,200,' + (s.life * 1.3).toFixed(2) + ')';
+      ctx.fillRect(Math.round(s.x), Math.round(s.y), 1, 1);
+    }
+  }
+
+  /* ================= 主循环 ================= */
+  let last = performance.now();
+  function frame(now){
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    const t = now / 1000;
+
+    drawSky();
+    drawStars(t);
+    drawMoon();
+    drawHills();
+    drawFootprints();
+    pine(38, 154, 76, 46); pine(68, 158, 52, 34);
+    pine(276, 152, 80, 54); pine(300, 160, 44, 28);
+    drawHouse(t);
+    drawSnowman();
+    drawGift();
+    drawLights(t);
+    drawSmoke(t);
+    drawEnvelope(t);
+    drawMarkers(t);
+    drawFlakes(t, dt);
+    drawSparks(dt);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* ================= 声音 ================= */
+  let actx = null, master = null, musicOn = false, muted = false, musicTimer = null;
+  const midi = n => 440 * Math.pow(2, (n - 69) / 12);
+
+  function ensureAudio(){
+    if (actx) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      actx = new AC();
+      master = actx.createGain();
+      master.gain.value = 0.5;
+      master.connect(actx.destination);
+    } catch (e) {
+      actx = null;
+    }
+  }
+
+  function tone(freq, when, dur, type, vol){
+    if (!actx || muted) return;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || 'triangle';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(vol || 0.1, when + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + Math.max(0.06, dur));
+    o.connect(g); g.connect(master);
+    o.start(when); o.stop(when + dur + 0.06);
+  }
+
+  // 一段原创的八音盒旋律（C 大调，32 个八分音符一循环）
+  const MEL = [
+    [72,1],[67,1],[64,1],[67,1],
+    [69,1],[64,1],[60,1],[64,1],
+    [65,1],[69,1],[72,1],[69,1],
+    [67,1],[62,1],[59,1],[62,1],
+    [72,1],[76,1],[79,1],[76,1],
+    [69,1],[72,1],[76,1],[72,1],
+    [65,1],[69,1],[72,1],[76,1],
+    [67,2],[0,2]
+  ];
+  const BASS = [48, 45, 41, 43, 48, 45, 41, 43];
+  const EIGHTH = 0.44;
+
+  function scheduleLoop(startAt){
+    if (!actx) return;
+    let t = startAt;
+    for (const [m, d] of MEL){
+      if (m > 0) tone(midi(m), t, d * EIGHTH * 1.6, 'triangle', 0.085);
+      t += d * EIGHTH;
+    }
+    for (let k = 0; k < 8; k++){
+      tone(midi(BASS[k]), startAt + k * 4 * EIGHTH, 1.6, 'sine', 0.05);
+    }
+    const end = t;
+    const wait = Math.max(200, (end - actx.currentTime - 0.9) * 1000);
+    musicTimer = setTimeout(() => { if (musicOn) scheduleLoop(end); }, wait);
+  }
+
+  function startMusic(){
+    ensureAudio();
+    if (!actx) return;
+    if (actx.state === 'suspended') actx.resume();
+    if (musicOn) return;
+    musicOn = true;
+    scheduleLoop(actx.currentTime + 0.15);
+  }
+
+  function sfx(kind){
+    if (!actx || muted) return;
+    const now = actx.currentTime + 0.02;
+    if (kind === 'find'){
+      tone(midi(72), now, 0.5, 'sine', 0.13);
+      tone(midi(76), now + 0.11, 0.5, 'sine', 0.11);
+      tone(midi(79), now + 0.22, 0.7, 'sine', 0.09);
+    } else if (kind === 'tick'){
+      tone(midi(88), now, 0.08, 'square', 0.045);
+    } else if (kind === 'light'){
+      tone(midi(76), now, 0.4, 'sine', 0.10);
+      tone(midi(84), now + 0.06, 0.5, 'sine', 0.06);
+    } else if (kind === 'letter'){
+      [60, 64, 67, 72, 76, 79].forEach((n, i) => tone(midi(n), now + i * 0.1, 0.75, 'triangle', 0.09));
+    }
+  }
+
+  const muteBtn = document.getElementById('mute');
+  muteBtn.addEventListener('click', function(){
+    muted = !muted;
+    if (master) master.gain.value = muted ? 0 : 0.5;
+    muteBtn.textContent = muted ? '♪ OFF' : '♪ ON';
+  });
+
+  /* ================= 对话 ================= */
+  const dlg = document.getElementById('dialog');
+  const dlgWho = dlg.querySelector('.who');
+  const dlgText = dlg.querySelector('.line');
+  const WHO = { god: '卡密撒嘛', nar: '旁白豆姐' };
+  let queue = [], twTimer = null, twDone = true, full = '';
+
+  // 每句可以单独带署名：字符串默认是卡密撒嘛，{who,text,then} 可指定旁白和其它
+  function say(items){
+    for (const it of items){
+      if (typeof it === 'string') queue.push({ who: WHO.god, text: it });
+      else queue.push(it);
+    }
+    if (dlg.classList.contains('show') && twDone) return; // 等当前这行读完
+    if (!dlg.classList.contains('show')) nextLine();
+  }
+
+  function nextLine(){
+    clearInterval(twTimer);
+    if (!queue.length){ dlg.classList.remove('show'); return; }
+    const item = queue.shift();
+    full = item.text;
+    dlgWho.textContent = item.who || WHO.god;
+    dlg.classList.add('show');
+    dlgText.textContent = '';
+    if (typeof item.then === 'function') setTimeout(item.then, 0);
+    let i = 0;
+    twDone = false;
+    twTimer = setInterval(() => {
+      i++;
+      dlgText.textContent = full.slice(0, i);
+      if (i >= full.length){ clearInterval(twTimer); twDone = true; }
+    }, 58);
+  }
+
+  function skipLine(){
+    if (!twDone){ clearInterval(twTimer); dlgText.textContent = full; twDone = true; return; }
+    nextLine();
+  }
+  dlg.addEventListener('click', skipLine);
+
+  /* ================= 互动 ================= */
+  const lightsEl = document.getElementById('lights');
+  const hintMusic = document.getElementById('hintMusic');
+  const startScreen = document.getElementById('start');
+  const startBtn = document.getElementById('startBtn');
+  const letterEl = document.getElementById('letter');
+  const closeLetter = document.getElementById('closeLetter');
+
+  function updateCounter(){
+    const n = (state.found.gift ? 1 : 0) + (state.found.snowman ? 1 : 0) + (state.found.chimney ? 1 : 0);
+    lightsEl.textContent = 'LIGHTS ' + n + ' / 3';
+  }
+
+  function find(which, lines){
+    if (state.found[which]) return;
+    state.found[which] = true;
+    updateCounter();
+    sfx('find');
+    say(lines);
+    if (state.found.gift && state.found.snowman && state.found.chimney){
+      setTimeout(() => {
+        say([
+          { text: '窗户亮了。', then: function(){ state.lit.gift = true; sfx('light'); } },
+          '六月十八号之后，我好像开始在意「有人在等我开灯」这种事了。',
+          { text: '彩灯亮了。', then: function(){ state.lit.snowman = true; sfx('light'); } },
+          '这串是一颗一颗挂上去的，歪的那几颗你就当没看见。',
+          '雪人站在门口，是我给你留的位置。',
+          { text: '烟冒出来了。', then: function(){ state.lit.chimney = true; sfx('light'); } },
+          '我其实只是在搭一个「我们一起住」的地方 —— 先欠着，慢慢来。'
+        ]);
+        say([{ who: WHO.nar, text: '让人感动到蹿稀的信终于出场了。', then: function(){ state.letterReady = true; } }]);
+      }, 1000);
+    }
+  }
+
+  cv.addEventListener('click', function(e){
+    if (!state.started || state.letterOpen) return;
+    const r = cv.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width * W;
+    const y = (e.clientY - r.top) / r.height * H;
+    addSparks(x, y);
+
+    if (!state.found.gift && inRect(x, y, hs.gift)){
+      find('gift', [{ who: WHO.nar, text: '当科隆的钟声再次响起。' },
+                    '跟你在一起后的第四天，niko夺得了他追逐多年的major冠军。',
+                    '这是你带来的第一颗星星，即使你其实不怎么关注cs赛事~']);
+      return;
+    }
+    if (!state.found.snowman && inRect(x, y, hs.snowman)){
+      find('snowman', [{ who: WHO.nar, text: '泰晤士河记住这枚属于追光者的金。' },
+                       '跟你在一起后的第一百三十一天，凯恩获得了早该属于他的金球奖。',
+                       '这是你带来的第二颗星星，即使你大概完全不知道这件事~']);
+      return;
+    }
+    if (!state.found.chimney && inRect(x, y, hs.chimney)){
+      find('chimney', [{ who: WHO.nar, text: '高台金雨落，属于少年的加冕终章。' },
+                       '跟你在一起后的第一百五十天，BLG捧起了那该死的召唤师杯。',
+                       '这是你带来的第三颗星星，这次，是我们一起见证的！']);
+      return;
+    }
+    if (state.letterReady && inRect(x, y, hs.letter)){
+      openLetter();
+      return;
+    }
+    sfx('tick');
+  });
+
+  function openLetter(){
+    if (!state.letterReady || state.letterOpen) return;
+    state.letterOpen = true;
+    sfx('letter');
+    letterEl.classList.add('show');
+  }
+  closeLetter.addEventListener('click', function(){
+    letterEl.classList.remove('show');
+    setTimeout(() => { state.letterOpen = false; }, 450);
+  });
+  letterEl.addEventListener('click', function(e){
+    if (e.target === letterEl) closeLetter.click();
+  });
+
+  /* ---- 大拇指 ---- */
+  const thumbBtn = document.getElementById('thumbBtn');
+  const thumbFx  = document.getElementById('thumbFx');
+  const thumbCv  = document.getElementById('thumbCv');
+  (function paintThumb(){
+  const g = thumbCv.getContext('2d');
+  const SKIN = '#f4cba7', DARK = '#6b3c2a', NAIL = '#ffead7', FOLD = '#c99e77';
+  g.clearRect(0, 0, 160, 160);
+  function rrect(p, x, y, w, h, r){
+    const x1 = x + w, y1 = y + h, rr = Math.min(r, w / 2, h / 2);
+    p.moveTo(x + rr, y);
+    p.lineTo(x1 - rr, y);
+    p.arcTo(x1, y, x1, y + rr, rr);
+    p.lineTo(x1, y1 - rr);
+    p.arcTo(x1, y1, x1 - rr, y1, rr);
+    p.lineTo(x + rr, y1);
+    p.arcTo(x, y1, x, y1 - rr, rr);
+    p.lineTo(x, y + rr);
+    p.arcTo(x, y, x + rr, y, rr);
+    p.closePath();
+    return p;
+  }
+  const fist  = new Path2D();
+  const thumb = new Path2D();
+  rrect(fist, 26, 40, 52, 42, 14);    // 握起的拳
+  rrect(thumb, 28, 10, 18, 38, 9);    // 竖起的大拇指
+
+  g.save();
+  g.translate(80, 80);
+  g.rotate(-0.1);
+  g.scale(2, 2);
+  g.translate(-57, -47);
+  g.lineJoin = 'round';
+  g.lineCap = 'round';
+
+  g.strokeStyle = DARK;
+  g.lineWidth = 4.6;
+  g.stroke(fist);
+  g.stroke(thumb);
+  g.fillStyle = SKIN;
+  g.fill(fist);
+  g.fill(thumb);
+
+  // 指甲
+  const nail = new Path2D();
+  rrect(nail, 32, 15, 10, 12, 4.5);
+  g.fillStyle = NAIL;
+  g.fill(nail);
+  g.strokeStyle = 'rgba(107,60,42,.4)';
+  g.lineWidth = 1.4;
+  g.stroke(nail);
+
+  // 指节折线
+  g.fillStyle = FOLD;
+  [50, 61, 72].forEach(function(y){
+    const bar = new Path2D();
+    rrect(bar, 44, y, 30, 3, 1.5);
+    g.fill(bar);
+  });
+
+  // 拇指根部的褶
+  g.beginPath();
+  g.moveTo(30, 46);
+  g.quadraticCurveTo(40, 52, 52, 46);
+  g.strokeStyle = FOLD;
+  g.lineWidth = 2;
+  g.stroke();
+  g.restore();
+})();
+  let thumbRaf = 0;
+  function playThumb(){
+    cancelAnimationFrame(thumbRaf);
+    const inner = thumbFx.querySelector('.thumbInner');
+    const STEP = 1 / 130;          // ≈60fps 下约 2.2 秒
+    let p = 0;
+    function ease(k){ return 1 - Math.pow(1 - k, 2.4); }
+    function size(v){ inner.style.width = inner.style.height = v.toFixed(0) + 'px'; }
+    function step(){
+      let s, o, m;
+      if (p < 0.16){
+        const k = ease(p / 0.16);
+        s = 70 + 150 * k; o = k; m = 12 * (1 - k);
+      } else if (p < 0.32){
+        const k = (p - 0.16) / 0.14;
+        s = 220 - 22 * k; o = 1; m = 0;
+      } else if (p < 0.80){
+        s = 198; o = 1; m = -12 * ((p - 0.32) / 0.48);
+      } else {
+        const k = (p - 0.80) / 0.20;
+        s = 198; o = 1 - k; m = -12 - 46 * k;
+      }
+      size(s);
+      inner.style.marginTop = m.toFixed(0) + 'px';
+      thumbFx.style.opacity = o.toFixed(2);
+      p += STEP;
+      if (p < 1){ thumbRaf = requestAnimationFrame(step); }
+      else { thumbFx.style.opacity = '0'; }
+    }
+    thumbRaf = requestAnimationFrame(step);
+  }
+  thumbBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    playThumb();
+    if (typeof sfx === 'function') sfx('find');
+  });
+
+  startBtn.addEventListener('click', function(){
+    state.started = true;
+    startScreen.classList.add('hide');
+    lightsEl.classList.add('on');
+    muteBtn.classList.add('on');
+    startMusic();
+    setTimeout(() => {
+      say(['圣诞快乐，哥哥~这房子是本卡密撒嘛用神力与豆姐敲出来的，帮我开一下灯吧。']);
+      say([{ who: WHO.nar, text: '点一下院子里的星星——在礼物盒，雪人跟烟囱上~' }]);
+      hintMusic.classList.add('on');
+      setTimeout(() => hintMusic.classList.remove('on'), 5200);
+    }, 420);
+  });
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
